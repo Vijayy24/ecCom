@@ -5,8 +5,9 @@ from django.http import JsonResponse
 import datetime
 
 from numpy import product
+from tomlkit import item
 from store.models import*
-from.utils import cookieCart,cartData
+from.utils import cookieCart,cartData,guestOrder
 
 
 def store(request):
@@ -70,40 +71,30 @@ def processOrder(request):
      if request.user.is_authenticated:
           customer = request.user.customer
           order,created = Order.objects.get_or_create(customer = customer,complete = False)
-          total =float( data['form']['total'])
-          order.transction_id = transaction_id
+          
 
-          if total == float(order.get_cart_total) :
-               order.complete = True
-          order.save()
-
-          if order.shipping == True:
-               ShippingAddress.objects.create(
-                    customer =customer,
-                    order= order,
-                    address = data['shipping']['address'],
-                    city = data['shipping']['city'],
-                    state = data['shipping']['state'],
-                    zipcode = data['shipping']['zipcode'],
-
-               )
+         
 
      else:
-          print ('User is not logged') 
-          print('COOKIES:',request.COOKIES)
-          name = data['form']['nmae']
-          email = data['form']['email']
-
-          cookieData = cookieCart(request)
-          items = cookieData['items']
-
-          customer,created = customer.objects.get_or_creat(
-               email = email,
-          )
-          customer.nmae = name
-          customer.save()
-
+         customer,order = guestOrder(request,data)
           
+     total =float( data['form']['total'])
+     order.transction_id = transaction_id
+
+     if total == float(order.get_cart_total) :
+               order.complete = True
+     order.save()
+     if order.shipping == True:
+          ShippingAddress.objects.create(
+               customer =customer,
+               order= order,
+               address = data['shipping']['address'],
+               city = data['shipping']['city'],
+               state = data['shipping']['state'],
+               zipcode = data['shipping']['zipcode'],
+
+          )
+
 
 
      return JsonResponse('payment complete!',safe=False)
